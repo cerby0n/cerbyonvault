@@ -103,6 +103,7 @@ export default function Sidebar() {
           <Avatar
             firstname={userData?.first_name}
             lastname={userData?.last_name}
+            profileImage={userData?.profile_image}
           />
           <ul
             tabIndex={0}

@@ -1,0 +1,5 @@
+# Additional requirements for SSO (Entra ID) integration
+# Add these to your requirements.txt file
+
+mozilla-django-oidc==4.0.0
+requests==2.32.3

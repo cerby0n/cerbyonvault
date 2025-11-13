@@ -176,6 +176,7 @@ export default function UserList() {
                         lastname={user.last_name}
                         size={44}
                         textSize={18}
+                        profileImage={user.profile_image}
                       />
                       <div className="text-md">
                         {user.first_name + " " + user.last_name}

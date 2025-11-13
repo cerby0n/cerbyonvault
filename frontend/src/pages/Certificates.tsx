@@ -7,7 +7,7 @@ export default function Certificates() {
       <div className="shrink-0">
         <Sidebar />
       </div>
-      <div className="flex-1 min-w-0 w-full p-4 pl-0">
+      <div className="flex min-w-0 w-full p-4 pl-0">
         <CertificateList />
       </div>
     </div>

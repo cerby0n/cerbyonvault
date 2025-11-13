@@ -39,12 +39,14 @@ interface User {
   last_name: string;
   is_admin: boolean;
   teams: { id: number; name: string }[];
+  profile_image?: string | null;
 }
 
 interface AuthContextType {
   user: DecodedToken | null;
   userData:User | null;
   setUser: React.Dispatch<React.SetStateAction<DecodedToken | null>>;
+  setUserData: React.Dispatch<React.SetStateAction<User | null>>;
   authTokens: AuthTokens | null;
   setAuthTokens: React.Dispatch<React.SetStateAction<AuthTokens | null>>;
   loginUser: (email: string, password: string) => Promise<void>;
@@ -104,9 +106,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     if (response.status === 200) {
       setAuthTokens(data);
       setUser(jwtDecode(data.access));
-      console.log(data.access);
       localStorage.setItem("authTokens", JSON.stringify(data));
-      
+
       await fetchUser(data.access);
       navigate("/");
     } else if (response.status === 401) {

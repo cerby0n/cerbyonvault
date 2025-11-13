@@ -12,6 +12,7 @@ import TeamDetail from "./pages/TeamDetail";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Websites from "./pages/Websites";
 import { AdminRoute } from "./utils/AdminRoute";
+import SSOCallback from "./pages/SSOCallback";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ function App() {
           <AuthProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/sso/callback" element={<SSOCallback />} />
               <Route path="*" element={<NotFound />} />
               <Route
                 path="/certificates"

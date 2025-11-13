@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import get_user_model
-from .models import Certificate, InviteToken, PrivateKey, CustomUser,Team, UploadedFile, UserProfile, Website
+from .models import Certificate, InviteToken, PrivateKey, CustomUser,Team, UploadedFile, UserProfile, Website, SSOConfiguration
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer,TokenRefreshSerializer
 from django.contrib.auth import authenticate
 
@@ -15,9 +15,10 @@ class TeamMiniSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     is_admin = serializers.SerializerMethodField()
     teams = TeamMiniSerializer(many=True, read_only=True)
+    profile_image = serializers.ImageField(required=False, allow_null=True)
     class Meta:
         model= CustomUser
-        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'is_admin', 'teams']
+        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'is_admin', 'teams', 'profile_image']
         extra_kwargs = {"password": {"write_only":True}}
 
     def create(self, validated_data):
@@ -36,6 +37,8 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['username'] = user.username
         token['first_name'] = user.first_name
         token['last_name'] = user.last_name
+        # Add teams to token
+        token['teams'] = [{'id': team.id, 'name': team.name} for team in user.teams.all()]
         return token
 
 class LoginUserSerializer(serializers.Serializer):
@@ -175,10 +178,11 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
     
 class AdminUserUpdateSerializer(serializers.ModelSerializer):
     is_admin = serializers.BooleanField(write_only=True, required=False)
+    profile_image = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = CustomUser
-        fields = ["email", "username", "first_name", "last_name", "is_admin"]
+        fields = ["email", "username", "first_name", "last_name", "is_admin", "profile_image"]
 
     def update(self, instance, validated_data):
         is_admin = validated_data.pop("is_admin", None)
@@ -226,4 +230,48 @@ class RegistrationSerializer(serializers.Serializer):
         self.invite.is_used = True
         self.invite.save()
         return user
-    
+
+class SSOConfigurationSerializer(serializers.ModelSerializer):
+    """
+    Serializer for SSO Configuration.
+    Handles encryption/decryption of client secret.
+    """
+    client_secret = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
+    class Meta:
+        model = SSOConfiguration
+        fields = ['id', 'tenant_id', 'client_id', 'client_secret', 'is_enabled', 'redirect_uri', 'scim_enabled', 'scim_token', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def to_representation(self, instance):
+        """Don't return the encrypted client secret"""
+        data = super().to_representation(instance)
+        # Return a masked version to indicate secret is set
+        if instance.encrypted_client_secret:
+            data['client_secret_set'] = True
+        else:
+            data['client_secret_set'] = False
+        return data
+
+    def create(self, validated_data):
+        from django.conf import settings
+        client_secret = validated_data.pop('client_secret', None)
+
+        if client_secret:
+            # Encrypt the client secret using Fernet
+            encrypted_secret = settings.FERNET.encrypt(client_secret.encode()).decode()
+            validated_data['encrypted_client_secret'] = encrypted_secret
+
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        from django.conf import settings
+        client_secret = validated_data.pop('client_secret', None)
+
+        if client_secret:
+            # Encrypt the new client secret
+            encrypted_secret = settings.FERNET.encrypt(client_secret.encode()).decode()
+            validated_data['encrypted_client_secret'] = encrypted_secret
+
+        return super().update(instance, validated_data)
+

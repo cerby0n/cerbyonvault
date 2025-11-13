@@ -18,6 +18,11 @@ class CustomUser(AbstractUser):
     REQUIRED_FIELDS = []
 
     username = models.CharField(max_length=150, blank=True, null=True, unique=False)
+    profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True, help_text="User profile picture")
+
+    # SSO-related fields
+    is_sso_user = models.BooleanField(default=False, help_text="True if user authenticates via Entra ID SSO")
+    sso_subject_id = models.CharField(max_length=255, blank=True, null=True, unique=True, help_text="Unique identifier from SSO provider (sub claim)")
 
     objects=CustomUserManager()
 
@@ -27,6 +32,8 @@ class CustomUser(AbstractUser):
 class Team(models.Model):
     name = models.CharField(max_length=255, unique=True)
     members = models.ManyToManyField(CustomUser, related_name='teams',blank=True)
+    external_id = models.CharField(max_length=255, blank=True, null=True, unique=True, help_text="External identifier from Azure AD (used for SCIM provisioning)")
+    provisioned_from_azure = models.BooleanField(default=False, help_text="True if this team was provisioned from Azure AD")
 
     def __str__(self):
         return self.name
@@ -133,6 +140,46 @@ class InviteToken(models.Model):
 
     def __str__(self):
         return f"{self.email} - {'used' if self.is_used else 'active'}"
+
+class SSOConfiguration(models.Model):
+    """
+    Stores Entra ID (Azure AD) SSO configuration.
+    Only one configuration should exist (enforced at application level).
+    """
+    tenant_id = models.CharField(max_length=255, help_text="Azure AD Tenant ID")
+    client_id = models.CharField(max_length=255, help_text="Application (client) ID from Azure AD app registration")
+    encrypted_client_secret = models.TextField(help_text="Encrypted client secret from Azure AD app registration")
+    is_enabled = models.BooleanField(default=False, help_text="Enable/disable SSO authentication")
+    redirect_uri = models.URLField(blank=True, null=True, help_text="Redirect URI (auto-generated if empty)")
+
+    # SCIM provisioning settings
+    scim_enabled = models.BooleanField(
+        default=False,
+        help_text="Enable SCIM provisioning for groups from Azure AD"
+    )
+    scim_token = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Bearer token for SCIM authentication (set in Azure AD app provisioning)"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "SSO Configuration"
+        verbose_name_plural = "SSO Configurations"
+
+    def __str__(self):
+        return f"SSO Config - {'Enabled' if self.is_enabled else 'Disabled'}"
+
+    def save(self, *args, **kwargs):
+        # Ensure only one configuration exists
+        if not self.pk and SSOConfiguration.objects.exists():
+            raise ValueError("Only one SSO configuration can exist. Please update the existing configuration.")
+        super().save(*args, **kwargs)
 
 @receiver(post_delete, sender=Certificate)
 def delete_cert_file(sender, instance, **kwargs):

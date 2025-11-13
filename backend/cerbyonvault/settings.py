@@ -36,6 +36,27 @@ print("DEBUG =", DEBUG)
 
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,admin.localhost").split(",")
 
+# Session configuration for OIDC
+SESSION_COOKIE_SAMESITE = 'Lax'  # Allow session cookie during OAuth redirect
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_NAME = 'cerbyonvault_session'
+
+# Security settings
+if not DEBUG:
+    # HTTPS enforcement in production
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Security headers (apply in all environments)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = 'DENY'
+
 
 # Application definition
 
@@ -52,7 +73,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework.authtoken',
     'certs',
-    'django_celery_beat'
+    'django_celery_beat',
+    'mozilla_django_oidc',  # SSO with Entra ID
 ]
 
 MIDDLEWARE = [
@@ -64,6 +86,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'mozilla_django_oidc.middleware.SessionRefresh',  # SSO session management
 ]
 
 ROOT_URLCONF = 'cerbyonvault.urls'
@@ -137,6 +160,33 @@ SIMPLE_JWT = {
 
 AUTH_USER_MODEL = 'certs.CustomUser'
 
+# Authentication Backends
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # Default backend for admin/local users
+    'certs.oidc_backend.EntraIDAuthenticationBackend',  # SSO backend for Entra ID
+]
+
+# OIDC (OpenID Connect) Configuration for SSO
+# These settings are loaded dynamically from the database by the custom backend
+# Default values are provided here for fallback
+OIDC_RP_CLIENT_ID = os.getenv('OIDC_RP_CLIENT_ID', '')
+OIDC_RP_CLIENT_SECRET = os.getenv('OIDC_RP_CLIENT_SECRET', '')
+OIDC_OP_AUTHORIZATION_ENDPOINT = ''  # Set dynamically by backend
+OIDC_OP_TOKEN_ENDPOINT = ''  # Set dynamically by backend
+OIDC_OP_USER_ENDPOINT = ''  # Set dynamically by backend
+OIDC_OP_JWKS_ENDPOINT = ''  # Set dynamically by backend
+OIDC_RP_SIGN_ALGO = 'RS256'
+OIDC_RP_SCOPES = 'openid profile email'
+OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = 3600
+OIDC_STORE_ID_TOKEN = True
+OIDC_STORE_ACCESS_TOKEN = True
+OIDC_CREATE_USER = True
+OIDC_USERNAME_ALGO = lambda email: email  # Use email as username
+
+# SSO Login/Logout URLs
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/login'
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
@@ -194,3 +244,37 @@ CELERY_TIMEZONE = 'UTC'
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 DEFAULT_FROM_EMAIL = "no-reply@cerbyonvault.local"
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost")
+
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'certs': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'mozilla_django_oidc': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

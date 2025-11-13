@@ -28,9 +28,6 @@ export default function CertificateList() {
   const [validFilter, setValidFilter] = useState<"all" | "valid" | "not_valid">(
     "all"
   );
-  const [typeFilter, setTypeFilter] = useState<
-    "all" | "leaf" | "root" | "intermediate"
-  >("all");
   const { fetchCerts, certs } = useItemFetch();
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -132,11 +129,6 @@ export default function CertificateList() {
     return certs.filter((cert) => {
       if (validFilter === "not_valid" && !cert.is_expired) return false;
       if (validFilter === "valid" && cert.is_expired) return false;
-      if (
-        typeFilter !== "all" &&
-        cert.certificate_type.toLowerCase() !== typeFilter
-      )
-        return false;
       return true;
     });
   }
@@ -144,8 +136,8 @@ export default function CertificateList() {
   const fullTree = buildCertificateTree(certs);
 
   return (
-    <div className="w-full flex">
-      <div className="flex flex-col w-full space-y-2 flex-1 min-h-0">
+    <div className="w-full flex h-full">
+      <div className="flex flex-col w-full space-y-2">
         <ListHeader
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
@@ -155,7 +147,7 @@ export default function CertificateList() {
           clearSelection={clearSelection}
         />
 
-        <div className="flex w-full flex-1 min-h-0 bg-base-100 rounded">
+        <div className="flex h-full bg-base-100 rounded">
           {/* Password Modal for PFX Files */}
           {showPasswordModal && (
             <PasswordModal
@@ -169,44 +161,32 @@ export default function CertificateList() {
           )}
 
           {/* Certificate Tree List */}
-          <div className="flex flex-col flex-1 min-w-0 min-h-0">
+          <div className="ml-4 mt-4 space-y-2 flex-1 min-w-0">
             {/* Filter Bar (not scrollable) */}
-            <div className="flex space-x-4 mb-4 ml-4 mt-4">
-              <div className="flex gap-2">
-                {[
-                  { label: "All", value: "all" },
-                  { label: "Valid", value: "valid" },
-                  { label: "Expired", value: "not_valid" },
-                ].map(({ label, value }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={`px-4 rounded-full text-sm font-medium transition 
+            <div className="flex gap-2 mb-4">
+              {[
+                { label: "All", value: "all" },
+                { label: "Valid", value: "valid" },
+                { label: "Expired", value: "not_valid" },
+              ].map(({ label, value }) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`px-4 rounded-full text-sm font-medium transition
           ${
             validFilter === value
               ? "bg-primary text-primary-content "
               : "bg-base-200/50 text-secondary-content hover:bg-primary hover:text-primary-content"
           }`}
-                    onClick={() => setValidFilter(value as any)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <select
-                className="border border-secondary/50 p-1 rounded font-medium bg-base-100"
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value as any)}
-              >
-                <option value="all">All Types</option>
-                <option value="rootca">Root</option>
-                <option value="intermediateca">Intermediate</option>
-                <option value="leaf">Leaf</option>
-              </select>
+                  onClick={() => setValidFilter(value as any)}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
             {/* Scrollable Certificate List */}
             <div className="flex-1 min-h-0 max-h-[calc(100vh-200px)] overflow-y-auto">
-              <ul className="space-y-2 ml-4">
+              <ul className="space-y-2">
                 {searchTerm === ""
                   ? filterCertificates(fullTree).map((cert) => (
                       <TreeItem
@@ -271,8 +251,8 @@ export default function CertificateList() {
                   isResized.current = true;
                 }}
               />
-              <div style={{ width: `${width / 16}rem` }} className="flex ">
-                <div className="p-4 rounded shadow-xl bg-base-100 border-2 border-base-100 flex-grow opacity-100">
+              <div style={{ width: `${width / 16}rem` }} className="flex h-full">
+                <div className="rounded-xl shadow-xl bg-base-100 border-2 border-base-100 flex-grow opacity-100 overflow-hidden">
                   <SidePanelCert
                     isOpen={selectedItems.length === 1}
                     onClose={() => clearSelection()}

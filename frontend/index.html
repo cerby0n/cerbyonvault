@@ -5,6 +5,21 @@
     <link rel="icon" type="image/svg+xml" href="/CerbyonVaultIcon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cerbyon Vault</title>
+    <script>
+      // Apply theme immediately to prevent flash of incorrect styling
+      (function() {
+        const getInitialTheme = () => {
+          if (localStorage.theme === "light" || localStorage.theme === "dark") {
+            return localStorage.theme;
+          }
+          if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+            return "dark";
+          }
+          return "light";
+        };
+        document.documentElement.setAttribute("data-theme", getInitialTheme());
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

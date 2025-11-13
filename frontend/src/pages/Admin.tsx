@@ -1,8 +1,10 @@
 import UserList from "../components/admin/UserList";
 import Sidebar from "../components/Sidebar";
 import TeamList from "../components/admin/TeamList";
+import SSOSettings from "../components/admin/SSOSettings";
 import { RiTeamFill } from "react-icons/ri";
 import { FaUser } from "react-icons/fa6";
+import { MdSecurity } from "react-icons/md";
 import { useSearchParams } from "react-router-dom";
 
 
@@ -43,6 +45,19 @@ export default function Admin() {
           </label>
           <div className="tab-content">
             {currentTab === "teams" && <TeamList />}
+          </div>
+          <label className="tab text-xl">
+            <input
+              type="radio"
+              name="admin_tabs"
+              checked={currentTab === "sso"}
+              onChange={() => setSearchParams({ tab: "sso" })}
+            />
+            <MdSecurity className="me-2" size={23} />
+            SSO Settings
+          </label>
+          <div className="tab-content">
+            {currentTab === "sso" && <SSOSettings />}
           </div>
         </div>
       </div>

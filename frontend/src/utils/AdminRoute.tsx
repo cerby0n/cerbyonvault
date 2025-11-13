@@ -7,14 +7,12 @@ interface AdminRouteProps {
 }
 
 export function AdminRoute({ children }: AdminRouteProps) {
-  const { userData } = useAuth();
+  const { user } = useAuth();
 
-  if (userData === null) {
-    return null;
-  }
-
-  if (!userData.is_admin) {
-    return <Navigate to="/" replace />;
+  // Temporarily disable admin check - all authenticated users can access admin routes
+  // TODO: Implement Entra ID group-based permissions
+  if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;

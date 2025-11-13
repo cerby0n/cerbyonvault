@@ -34,6 +34,7 @@ from certs.views import (
     certificates_list,
     certificates_top_expiry,
 )
+from certs.views.sso_settings_views import SSOConfigurationView, SSOTestConnectionView, SSOStatusView
 from rest_framework_simplejwt.views import TokenRefreshView
 
 
@@ -85,6 +86,11 @@ urlpatterns = [
     path('admin/teams/<int:pk>/delete/', DeleteTeamView.as_view()),
     path('register/<uuid:token>/', RegisterFromInviteView.as_view()),
     path('admin/invite/', GenerateInviteView.as_view()),
+
+    #SSO CONFIGURATION
+    path('admin/sso-settings/', SSOConfigurationView.as_view(), name='sso-settings'),
+    path('admin/sso-settings/test/', SSOTestConnectionView.as_view(), name='sso-test-connection'),
+    path('sso/status/', SSOStatusView.as_view(), name='sso-status'),  # Public endpoint
 
     #WEBSITE VIEW
     path('websites/', WebsiteListView.as_view()),

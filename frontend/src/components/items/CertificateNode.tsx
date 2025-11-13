@@ -6,28 +6,34 @@ interface CertificateNodeProps {
 }
 
 export default function CertificateNode({ cert }: CertificateNodeProps) {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   return (
-    <div className="flex justify-between items-center select-none text-secondary-content">
-      <div className="flex items-center gap-3">
-        <PiCertificateThin size={30} strokeWidth={8} />
-        <div className="flex flex-col flex-1 min-w-0">
-          <div className="text-base truncate">{cert.name}</div>
-          <div className="text-xs truncate ">
-            Expires: {new Date(cert.not_after).toLocaleDateString()}
-          </div>
-        </div>
+    <div className="flex justify-between items-center select-none text-secondary-content py-1">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <PiCertificateThin size={24} strokeWidth={8} className="flex-shrink-0" />
+        <div className="text-sm font-medium truncate">{cert.name}</div>
       </div>
 
-      <div className="flex items-end justify-end gap-2 flex-shrink-0 min-w-[190px]">
-        <div className="text-sm font-semibold ml-12">{cert.certificate_type}</div>
-        <div className="flex items-center gap-2 text-right font-semibold mr-4">
+      <div className="flex items-center gap-6 flex-shrink-0">
+        <div className="text-xs text-base-content/60 whitespace-nowrap min-w-[100px]">
+          {formatDate(cert.not_after)}
+        </div>
+
+        <div className="flex items-center gap-1.5 mr-4 min-w-[80px]">
           <span
-            className={`h-3 w-3 mt-1 rounded-full ${
+            className={`h-2.5 w-2.5 rounded-full ${
               cert.is_expired ? "bg-error" : "bg-success"
             }`}
           ></span>
           <div
-            className={`font-semibold ${
+            className={`text-xs font-semibold ${
               cert.is_expired ? "text-error" : "text-success"
             }`}
           >
