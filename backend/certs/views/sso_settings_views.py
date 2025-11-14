@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
-from ..models import SSOConfiguration, UserProfile
+from ..models import SSOConfiguration
 from ..serializers import SSOConfigurationSerializer
 
 
@@ -17,14 +17,8 @@ class SSOConfigurationView(APIView):
     permission_classes = [IsAuthenticated]
 
     def check_admin_permission(self, request):
-        """Check if user is a company admin"""
-        try:
-            user_profile = UserProfile.objects.get(user=request.user)
-            if not user_profile.is_company_admin:
-                return False
-        except UserProfile.DoesNotExist:
-            return False
-        return True
+        """Check if user is a staff/admin user"""
+        return request.user.is_staff
 
     def get(self, request):
         """Retrieve SSO configuration"""
@@ -106,14 +100,8 @@ class SSOTestConnectionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def check_admin_permission(self, request):
-        """Check if user is a company admin"""
-        try:
-            user_profile = UserProfile.objects.get(user=request.user)
-            if not user_profile.is_company_admin:
-                return False
-        except UserProfile.DoesNotExist:
-            return False
-        return True
+        """Check if user is a staff/admin user"""
+        return request.user.is_staff
 
     def post(self, request):
         """Test connection to Entra ID"""

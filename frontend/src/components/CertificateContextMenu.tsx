@@ -56,7 +56,7 @@ export default function CertificateContextMenu({
     children: React.ReactNode;
   }) => (
     <div className="relative group">
-      <button className="w-full text-left p-1 cursor-pointer hover:bg-base-100">
+      <button className="w-full text-left p-1 cursor-pointer hover:bg-base-200 text-base-content rounded">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {icon}
@@ -66,7 +66,7 @@ export default function CertificateContextMenu({
         </div>
       </button>
       <div
-        className="absolute left-full top-0 z-50  bg-base-100 outline outline-accent/20 rounded shadow-md p-2 hidden group-hover:flex flex-col space-y-1 w-40"
+        className="absolute left-full top-0 z-50 bg-base-100 outline outline-accent/20 rounded shadow-md p-2 hidden group-hover:flex flex-col space-y-1 w-40"
       >
         <div className="flex flex-col min-w-max items-start">{children}</div>
       </div>
@@ -85,10 +85,10 @@ export default function CertificateContextMenu({
   return (
     <div
       ref={menuRef}
-      className="absolute bg-base-100 shadow-md outline outline-accent/20 p-3 rounded z-50 w-64"
+      className="absolute bg-base-100 shadow-md outline outline-accent/20 p-3 rounded z-50 w-64 text-base-content"
       style={menuStyle}
     >
-      <h3 className="font-bold mb-2 flex items-center gap-2">
+      <h3 className="font-bold mb-2 flex items-center gap-2 text-base-content">
         <FileText size={18} />
         Export Options
       </h3>

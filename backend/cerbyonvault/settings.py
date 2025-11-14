@@ -86,7 +86,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'mozilla_django_oidc.middleware.SessionRefresh',  # SSO session management
 ]
 
 ROOT_URLCONF = 'cerbyonvault.urls'
