@@ -25,3 +25,10 @@ from .adminManagement_views import (
     RegisterFromInviteView,
     TeamDetailView
     )
+from .notifications_views import (
+    EmailConfigViewSet,
+    NotificationConfigViewSet,
+    CertificateNotificationViewSet,
+    SecretNotificationViewSet,
+    NotificationLogViewSet
+)

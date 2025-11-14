@@ -3,6 +3,7 @@ import { Secret, Team } from "../types";
 import useAxios from "../axios/useAxios";
 import { useToast } from "./ToastProvider";
 import TeamsSelect from "../utils/TeamsSearch";
+import SecretNotifications from "./SecretNotifications";
 import {
   X,
   Key,
@@ -288,6 +289,9 @@ export default function SidePanelSecret({
             <TeamsSelect value={accessTeams} onChange={setAccessTeams} />
           </div>
         </div>
+
+        {/* NOTIFICATIONS SECTION */}
+        <SecretNotifications secretId={secret.id} />
       </div>
 
       {/* Update Button - Fixed at bottom */}

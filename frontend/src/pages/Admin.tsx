@@ -2,9 +2,11 @@ import UserList from "../components/admin/UserList";
 import Sidebar from "../components/Sidebar";
 import TeamList from "../components/admin/TeamList";
 import SSOSettings from "../components/admin/SSOSettings";
+import NotificationSettings from "../components/admin/NotificationSettings";
 import { RiTeamFill } from "react-icons/ri";
 import { FaUser } from "react-icons/fa6";
 import { MdSecurity } from "react-icons/md";
+import { Bell } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 
@@ -58,6 +60,19 @@ export default function Admin() {
           </label>
           <div className="tab-content">
             {currentTab === "sso" && <SSOSettings />}
+          </div>
+          <label className="tab text-xl">
+            <input
+              type="radio"
+              name="admin_tabs"
+              checked={currentTab === "notifications"}
+              onChange={() => setSearchParams({ tab: "notifications" })}
+            />
+            <Bell className="me-2" size={23} />
+            Notifications
+          </label>
+          <div className="tab-content">
+            {currentTab === "notifications" && <NotificationSettings />}
           </div>
         </div>
       </div>

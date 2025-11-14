@@ -215,6 +215,178 @@ class Secret(models.Model):
         return False
 
 
+class EmailConfig(models.Model):
+    """
+    Configuration for email delivery method.
+    Supports both SMTP and Microsoft Graph API.
+    """
+    METHOD_CHOICES = [
+        ('smtp', 'SMTP'),
+        ('graph', 'Microsoft Graph API'),
+    ]
+
+    method = models.CharField(max_length=10, choices=METHOD_CHOICES, default='smtp')
+
+    # SMTP Configuration
+    smtp_host = models.CharField(max_length=255, blank=True, null=True)
+    smtp_port = models.IntegerField(default=587, blank=True, null=True)
+    smtp_username = models.CharField(max_length=255, blank=True, null=True)
+    smtp_password = models.CharField(max_length=255, blank=True, null=True)
+    smtp_use_tls = models.BooleanField(default=True)
+    smtp_from_email = models.EmailField(blank=True, null=True)
+
+    # Microsoft Graph Configuration
+    graph_tenant_id = models.CharField(max_length=255, blank=True, null=True)
+    graph_client_id = models.CharField(max_length=255, blank=True, null=True)
+    graph_client_secret = models.CharField(max_length=255, blank=True, null=True)
+    graph_from_email = models.EmailField(blank=True, null=True)
+
+    # Schedule configuration
+    daily_check_time = models.TimeField(default='09:00', help_text="Time to run daily expiry check (HH:MM)")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Email Configuration"
+        verbose_name_plural = "Email Configurations"
+
+    def __str__(self):
+        return f"Email Config ({self.get_method_display()})"
+
+
+class NotificationConfig(models.Model):
+    """
+    Notification configuration at team or global level.
+    If team is NULL, this is the global/enterprise configuration.
+    """
+    team = models.OneToOneField(Team, on_delete=models.CASCADE, null=True, blank=True, related_name='notification_config')
+    is_global = models.BooleanField(default=False, help_text="True if this is the global/enterprise configuration")
+
+    enabled = models.BooleanField(default=False)
+    recipients = models.JSONField(default=list, help_text="List of email addresses to notify")
+
+    # Expiry notifications
+    notify_expiring = models.BooleanField(default=True)
+    expiry_thresholds = models.JSONField(default=list, help_text="Days before expiry to notify [7, 30, 60, 90]")
+    notify_expired = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Notification Configuration"
+        verbose_name_plural = "Notification Configurations"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['is_global'],
+                condition=models.Q(is_global=True),
+                name='unique_global_config'
+            )
+        ]
+
+    def __str__(self):
+        if self.is_global:
+            return "Global Notification Config"
+        elif self.team:
+            return f"Notification Config for {self.team.name}"
+        return "Notification Config"
+
+
+class CertificateNotification(models.Model):
+    """
+    Per-certificate notification override.
+    Allows custom notification settings for specific certificates.
+    """
+    certificate = models.OneToOneField(Certificate, on_delete=models.CASCADE, related_name='notification_config')
+    override_enabled = models.BooleanField(default=False, help_text="Enable custom notifications for this certificate")
+
+    recipients = models.JSONField(default=list, help_text="List of email addresses to notify")
+
+    # Expiry notifications
+    notify_expiring = models.BooleanField(default=True)
+    expiry_thresholds = models.JSONField(default=list, help_text="Days before expiry to notify [7, 30, 60, 90]")
+    notify_expired = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Certificate Notification"
+        verbose_name_plural = "Certificate Notifications"
+
+    def __str__(self):
+        return f"Notification Config for {self.certificate.name}"
+
+
+class SecretNotification(models.Model):
+    """
+    Per-secret notification override.
+    Allows custom notification settings for specific secrets.
+    """
+    secret = models.OneToOneField(Secret, on_delete=models.CASCADE, related_name='notification_config')
+    override_enabled = models.BooleanField(default=False, help_text="Enable custom notifications for this secret")
+
+    recipients = models.JSONField(default=list, help_text="List of email addresses to notify")
+
+    # Expiry notifications
+    notify_expiring = models.BooleanField(default=True)
+    expiry_thresholds = models.JSONField(default=list, help_text="Days before expiry to notify [7, 30, 60, 90]")
+    notify_expired = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Secret Notification"
+        verbose_name_plural = "Secret Notifications"
+
+    def __str__(self):
+        return f"Notification Config for {self.secret.name}"
+
+
+class NotificationLog(models.Model):
+    """
+    Log of sent notifications for audit trail.
+    """
+    NOTIFICATION_TYPES = [
+        ('expiring_soon', 'Expiring Soon'),
+        ('expired', 'Expired'),
+    ]
+
+    RESOURCE_TYPES = [
+        ('certificate', 'Certificate'),
+        ('secret', 'Secret'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('sent', 'Sent'),
+        ('failed', 'Failed'),
+    ]
+
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    resource_type = models.CharField(max_length=20, choices=RESOURCE_TYPES)
+    resource_id = models.IntegerField()
+    resource_name = models.CharField(max_length=255)
+
+    recipients = models.JSONField(help_text="List of email addresses notified")
+    days_until_expiry = models.IntegerField(null=True, blank=True, help_text="Days until expiry (for expiring_soon type)")
+
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    error_message = models.TextField(blank=True, null=True)
+
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Notification Log"
+        verbose_name_plural = "Notification Logs"
+        ordering = ['-sent_at']
+
+    def __str__(self):
+        return f"{self.get_notification_type_display()} - {self.resource_name}"
+
+
 @receiver(post_delete, sender=Certificate)
 def delete_cert_file(sender, instance, **kwargs):
     if instance.file:

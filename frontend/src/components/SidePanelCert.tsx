@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Certificate, Team } from "../types";
 import TeamsSelect from "../utils/TeamsSearch";
 import WebsitesManager from "./items/WebsitesManager";
+import CertificateNotifications from "./CertificateNotifications";
 import { useCertService } from "../utils/useCertService";
 import { formatDate } from "../utils/utils";
 import { InputCopy } from "./items/InputCopy";
@@ -275,6 +276,9 @@ export default function SidePanelCert({
           <TeamsSelect value={accessTeams} onChange={setAccessTeams} />
         </div>
       </div>
+
+      {/* NOTIFICATIONS SECTION */}
+      <CertificateNotifications certificateId={data.cert.id} />
       </div>
 
       {/* Update Button - Fixed at bottom */}

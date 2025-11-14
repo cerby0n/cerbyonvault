@@ -1,4 +1,5 @@
 from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 from certs.views import (
     CertificateListView,
     CertificateDetailView,
@@ -29,6 +30,11 @@ from certs.views import (
     RegisterFromInviteView,
     GenerateInviteView,
     TeamDetailView,
+    EmailConfigViewSet,
+    NotificationConfigViewSet,
+    CertificateNotificationViewSet,
+    SecretNotificationViewSet,
+    NotificationLogViewSet,
 )
 from certs.views.dashboard_views import (
     certificates_overview,
@@ -42,6 +48,14 @@ from certs.views.dashboard_views import (
 from certs.views.sso_settings_views import SSOConfigurationView, SSOTestConnectionView, SSOStatusView
 from certs.views.secrets_views import SecretListCreateView, SecretDetailView, SecretRevealView
 from rest_framework_simplejwt.views import TokenRefreshView
+
+# Create router for ViewSets
+router = DefaultRouter()
+router.register(r'notifications/email-config', EmailConfigViewSet, basename='email-config')
+router.register(r'notifications/configs', NotificationConfigViewSet, basename='notification-config')
+router.register(r'notifications/certificate-configs', CertificateNotificationViewSet, basename='certificate-notification')
+router.register(r'notifications/secret-configs', SecretNotificationViewSet, basename='secret-notification')
+router.register(r'notifications/logs', NotificationLogViewSet, basename='notification-log')
 
 
 urlpatterns = [
@@ -116,3 +130,6 @@ urlpatterns = [
     path('dashboard/secrets-list/', secrets_list, name='secrets-list'),
 
 ]
+
+# Include router URLs for notification system
+urlpatterns += router.urls

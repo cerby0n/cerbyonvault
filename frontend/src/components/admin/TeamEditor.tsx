@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import useAxios from "../../axios/useAxios";
 import { useToast } from "../ToastProvider";
 import ConfirmModal from "../modals/ConfirmModal";
-import { Save, Trash2, Minus, ArrowLeft } from "lucide-react";
+import TeamNotifications from "./TeamNotifications";
+import { Save, Trash2, Minus, ArrowLeft, Users, Bell } from "lucide-react";
 
 export default function TeamEditor({ team, onClose, onSave }: any) {
   const axiosInstance = useAxios();
@@ -14,6 +15,7 @@ export default function TeamEditor({ team, onClose, onSave }: any) {
   const [teamName, setTeamName] = useState(team.name);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<"members" | "notifications">("members");
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -129,9 +131,32 @@ export default function TeamEditor({ team, onClose, onSave }: any) {
           onConfirm={handleDeleteTeam}
         />
       )}
-      <div className="mt-4 bg-base-100 p-6 rounded-xl space-y-6 h-full">
-        {/* Add User Table */}
-        <div>
+
+      {/* Tabs */}
+      <div className="mt-4">
+        <div className="tabs tabs-boxed">
+          <button
+            className={`tab ${activeTab === "members" ? "tab-active" : ""}`}
+            onClick={() => setActiveTab("members")}
+          >
+            <Users size={18} className="mr-2" />
+            Members
+          </button>
+          <button
+            className={`tab ${activeTab === "notifications" ? "tab-active" : ""}`}
+            onClick={() => setActiveTab("notifications")}
+          >
+            <Bell size={18} className="mr-2" />
+            Notifications
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === "members" && (
+        <div className="mt-4 bg-base-100 p-6 rounded-xl space-y-6 h-full">
+          {/* Add User Table */}
+          <div>
           <div ref={dropdownRef} className="relative mb-4">
             <input
               type="text"
@@ -231,6 +256,21 @@ export default function TeamEditor({ team, onClose, onSave }: any) {
           </button>
         </div>
       </div>
+      )}
+
+      {/* Notifications Tab */}
+      {activeTab === "notifications" && (
+        <div className="mt-4 bg-base-100 p-6 rounded-xl">
+          <TeamNotifications teamId={team.id} />
+
+          <div className="mt-6">
+            <button className="btn btn-outline" onClick={onClose}>
+              <ArrowLeft size={18} />
+              Back to Teams
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

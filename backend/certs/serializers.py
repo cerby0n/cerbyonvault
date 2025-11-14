@@ -1,7 +1,11 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import get_user_model
-from .models import Certificate, InviteToken, PrivateKey, CustomUser,Team, UploadedFile, UserProfile, Website, SSOConfiguration, Secret
+from .models import (
+    Certificate, InviteToken, PrivateKey, CustomUser, Team, UploadedFile,
+    UserProfile, Website, SSOConfiguration, Secret, EmailConfig,
+    NotificationConfig, CertificateNotification, SecretNotification, NotificationLog
+)
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer,TokenRefreshSerializer
 from django.contrib.auth import authenticate
 
@@ -395,4 +399,219 @@ class SecretUpdateSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+
+# =============================================================================
+# NOTIFICATION SYSTEM SERIALIZERS
+# =============================================================================
+
+class EmailConfigSerializer(serializers.ModelSerializer):
+    """
+    Serializer for email configuration.
+    Supports both SMTP and Microsoft Graph API methods.
+    """
+    smtp_password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    graph_client_secret = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
+    class Meta:
+        model = EmailConfig
+        fields = [
+            'id', 'method', 'smtp_host', 'smtp_port', 'smtp_username',
+            'smtp_password', 'smtp_use_tls', 'smtp_from_email',
+            'graph_tenant_id', 'graph_client_id', 'graph_client_secret',
+            'graph_from_email', 'daily_check_time', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def to_representation(self, instance):
+        """Don't return sensitive credentials"""
+        data = super().to_representation(instance)
+        # Indicate if passwords/secrets are set without exposing them
+        data['smtp_password_set'] = bool(instance.smtp_password)
+        data['graph_client_secret_set'] = bool(instance.graph_client_secret)
+        # Remove the actual sensitive fields from response
+        data.pop('smtp_password', None)
+        data.pop('graph_client_secret', None)
+        return data
+
+    def validate(self, data):
+        """Validate that required fields are present based on selected method"""
+        method = data.get('method', 'smtp')
+
+        if method == 'smtp':
+            # SMTP required fields
+            required_fields = ['smtp_host', 'smtp_port', 'smtp_from_email']
+            for field in required_fields:
+                if not data.get(field) and not (self.instance and getattr(self.instance, field, None)):
+                    raise serializers.ValidationError({
+                        field: f'This field is required when using SMTP method.'
+                    })
+        elif method == 'graph':
+            # Microsoft Graph required fields
+            required_fields = ['graph_tenant_id', 'graph_client_id', 'graph_client_secret', 'graph_from_email']
+            for field in required_fields:
+                if not data.get(field) and not (self.instance and getattr(self.instance, field, None)):
+                    raise serializers.ValidationError({
+                        field: f'This field is required when using Microsoft Graph method.'
+                    })
+
+        return data
+
+
+class NotificationConfigSerializer(serializers.ModelSerializer):
+    """
+    Serializer for notification configuration (team-based or global).
+    """
+    team_name = serializers.CharField(source='team.name', read_only=True)
+
+    class Meta:
+        model = NotificationConfig
+        fields = [
+            'id', 'team', 'team_name', 'is_global', 'enabled',
+            'recipients', 'notify_expiring', 'expiry_thresholds',
+            'notify_expired', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate_recipients(self, value):
+        """Validate that recipients is a list of valid email addresses"""
+        if not isinstance(value, list):
+            raise serializers.ValidationError('Recipients must be a list of email addresses.')
+
+        for email in value:
+            if not isinstance(email, str):
+                raise serializers.ValidationError('All recipients must be valid email addresses.')
+            # Basic email validation
+            if '@' not in email or '.' not in email.split('@')[-1]:
+                raise serializers.ValidationError(f'Invalid email address: {email}')
+
+        return value
+
+    def validate_expiry_thresholds(self, value):
+        """Validate that expiry_thresholds is a list of positive integers"""
+        if not isinstance(value, list):
+            raise serializers.ValidationError('Expiry thresholds must be a list of numbers.')
+
+        for threshold in value:
+            if not isinstance(threshold, int) or threshold <= 0:
+                raise serializers.ValidationError('All expiry thresholds must be positive integers.')
+
+        # Sort thresholds in ascending order
+        return sorted(value)
+
+    def validate(self, data):
+        """Validate that only one global config can exist"""
+        if data.get('is_global', False):
+            # Check if another global config exists (excluding current instance if updating)
+            existing_global = NotificationConfig.objects.filter(is_global=True)
+            if self.instance:
+                existing_global = existing_global.exclude(pk=self.instance.pk)
+
+            if existing_global.exists():
+                raise serializers.ValidationError({
+                    'is_global': 'Only one global notification configuration can exist.'
+                })
+
+            # Global config cannot have a team
+            if data.get('team'):
+                raise serializers.ValidationError({
+                    'team': 'Global configuration cannot be associated with a team.'
+                })
+
+        return data
+
+
+class CertificateNotificationSerializer(serializers.ModelSerializer):
+    """
+    Serializer for per-certificate notification overrides.
+    """
+    certificate_name = serializers.CharField(source='certificate.name', read_only=True)
+
+    class Meta:
+        model = CertificateNotification
+        fields = [
+            'id', 'certificate', 'certificate_name', 'override_enabled',
+            'recipients', 'notify_expiring', 'expiry_thresholds',
+            'notify_expired', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate_recipients(self, value):
+        """Validate that recipients is a list of valid email addresses"""
+        if not isinstance(value, list):
+            raise serializers.ValidationError('Recipients must be a list of email addresses.')
+
+        for email in value:
+            if not isinstance(email, str):
+                raise serializers.ValidationError('All recipients must be valid email addresses.')
+            if '@' not in email or '.' not in email.split('@')[-1]:
+                raise serializers.ValidationError(f'Invalid email address: {email}')
+
+        return value
+
+    def validate_expiry_thresholds(self, value):
+        """Validate that expiry_thresholds is a list of positive integers"""
+        if not isinstance(value, list):
+            raise serializers.ValidationError('Expiry thresholds must be a list of numbers.')
+
+        for threshold in value:
+            if not isinstance(threshold, int) or threshold <= 0:
+                raise serializers.ValidationError('All expiry thresholds must be positive integers.')
+
+        return sorted(value)
+
+
+class SecretNotificationSerializer(serializers.ModelSerializer):
+    """
+    Serializer for per-secret notification overrides.
+    """
+    secret_name = serializers.CharField(source='secret.name', read_only=True)
+
+    class Meta:
+        model = SecretNotification
+        fields = [
+            'id', 'secret', 'secret_name', 'override_enabled',
+            'recipients', 'notify_expiring', 'expiry_thresholds',
+            'notify_expired', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate_recipients(self, value):
+        """Validate that recipients is a list of valid email addresses"""
+        if not isinstance(value, list):
+            raise serializers.ValidationError('Recipients must be a list of email addresses.')
+
+        for email in value:
+            if not isinstance(email, str):
+                raise serializers.ValidationError('All recipients must be valid email addresses.')
+            if '@' not in email or '.' not in email.split('@')[-1]:
+                raise serializers.ValidationError(f'Invalid email address: {email}')
+
+        return value
+
+    def validate_expiry_thresholds(self, value):
+        """Validate that expiry_thresholds is a list of positive integers"""
+        if not isinstance(value, list):
+            raise serializers.ValidationError('Expiry thresholds must be a list of numbers.')
+
+        for threshold in value:
+            if not isinstance(threshold, int) or threshold <= 0:
+                raise serializers.ValidationError('All expiry thresholds must be positive integers.')
+
+        return sorted(value)
+
+
+class NotificationLogSerializer(serializers.ModelSerializer):
+    """
+    Serializer for notification logs (read-only).
+    Used for audit trail and debugging.
+    """
+    class Meta:
+        model = NotificationLog
+        fields = [
+            'id', 'notification_type', 'resource_type', 'resource_id',
+            'resource_name', 'recipients', 'days_until_expiry',
+            'status', 'error_message', 'sent_at'
+        ]
+        read_only_fields = fields  # All fields are read-only
 
