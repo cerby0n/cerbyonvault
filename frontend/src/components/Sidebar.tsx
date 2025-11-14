@@ -13,7 +13,7 @@ import {
   HiGlobeAlt,
   HiOutlineGlobeAlt,
 } from "react-icons/hi2";
-import { MdOutlineSpaceDashboard, MdSpaceDashboard } from "react-icons/md";
+import { MdOutlineSpaceDashboard, MdSpaceDashboard, MdLockOutline, MdLock } from "react-icons/md";
 import { RiTeamLine, RiTeamFill } from "react-icons/ri";
 import ThemeToggle from "../utils/ThemeToggle";
 //import { MdMenu } from "react-icons/md";
@@ -65,6 +65,12 @@ export default function Sidebar() {
       icon: HiOutlineGlobeAlt,
       activeIcon: HiGlobeAlt,
       to: "/websites",
+    },
+    {
+      label: "Secrets",
+      icon: MdLockOutline,
+      activeIcon: MdLock,
+      to: "/secrets",
     },
     {
       label: "Teams",

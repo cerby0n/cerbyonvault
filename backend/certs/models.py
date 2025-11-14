@@ -181,6 +181,40 @@ class SSOConfiguration(models.Model):
             raise ValueError("Only one SSO configuration can exist. Please update the existing configuration.")
         super().save(*args, **kwargs)
 
+
+class Secret(models.Model):
+    """
+    Stores encrypted secrets (API keys, passwords, tokens, etc.) with team-based access control.
+    Similar to Certificate model but for secret management.
+    """
+    name = models.CharField(max_length=255, help_text="Name or description of the secret")
+    encrypted_secret_value = models.TextField(help_text="Encrypted secret value (API key, password, token, etc.)")
+    application = models.CharField(max_length=255, help_text="Application or service this secret belongs to")
+    expiry_date = models.DateField(blank=True, null=True, help_text="When this secret expires (optional)")
+    access_teams = models.ManyToManyField(Team, related_name='secrets', blank=True, help_text="Teams that can access this secret")
+    comment = models.TextField(blank=True, null=True, help_text="Additional notes about this secret")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_secrets')
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Secret"
+        verbose_name_plural = "Secrets"
+
+    def __str__(self):
+        return f"{self.name} ({self.application})"
+
+    @property
+    def is_expired(self):
+        """Check if the secret has expired"""
+        if self.expiry_date:
+            from django.utils import timezone
+            return self.expiry_date < timezone.now().date()
+        return False
+
+
 @receiver(post_delete, sender=Certificate)
 def delete_cert_file(sender, instance, **kwargs):
     if instance.file:

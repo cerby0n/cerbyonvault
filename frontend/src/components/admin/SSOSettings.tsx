@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
+import { Check } from "lucide-react";
 
 interface SSOConfig {
   id?: number;
@@ -192,7 +193,10 @@ export default function SSOSettings() {
                 <label className="label">
                   <span className="label-text font-semibold">Client Secret</span>
                   {config.client_secret_set && (
-                    <span className="label-text-alt text-success">✓ Secret is set</span>
+                    <span className="label-text-alt text-success flex items-center gap-1">
+                      <Check size={16} />
+                      Secret is set
+                    </span>
                   )}
                 </label>
                 <input

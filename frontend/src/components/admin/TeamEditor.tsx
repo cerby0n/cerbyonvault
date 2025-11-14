@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import useAxios from "../../axios/useAxios";
 import { useToast } from "../ToastProvider";
 import ConfirmModal from "../modals/ConfirmModal";
+import { Save, Trash2, Minus, ArrowLeft } from "lucide-react";
 
 export default function TeamEditor({ team, onClose, onSave }: any) {
   const axiosInstance = useAxios();
@@ -103,13 +104,15 @@ export default function TeamEditor({ team, onClose, onSave }: any) {
         </div>
         <div className="space-x-2">
           <button className="btn btn-primary" onClick={handleSave}>
-            💾 Save
+            <Save size={18} />
+            Save
           </button>
           <button
             className="btn btn-error"
             onClick={() => setShowConfirmModal(true)}
           >
-            🗑️ Delete
+            <Trash2 size={18} />
+            Delete
           </button>
         </div>
       </div>
@@ -203,7 +206,7 @@ export default function TeamEditor({ team, onClose, onSave }: any) {
                           className="btn btn-circle btn-sm btn-error"
                           onClick={() => handleRemove(user.id)}
                         >
-                          <span className="text-xl">−</span>
+                          <Minus size={16} />
                         </button>
                       </td>
                     </tr>
@@ -223,7 +226,8 @@ export default function TeamEditor({ team, onClose, onSave }: any) {
 
         <div className="mt-6">
           <button className="btn btn-outline" onClick={onClose}>
-            ← Back to Teams
+            <ArrowLeft size={18} />
+            Back to Teams
           </button>
         </div>
       </div>

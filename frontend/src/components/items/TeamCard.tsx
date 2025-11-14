@@ -1,4 +1,5 @@
 import AvatarList from "./AvatarList";
+import { Check } from "lucide-react";
 
 interface User {
   id: number;
@@ -31,7 +32,10 @@ export default function TeamCard({ team, onClick }: TeamCardProps) {
       <p className="text-sm text-gray-500">
         {team.members.length} member{team.members.length > 1 && "s"}{" "}
         {team.isCurrentUserMember && (
-          <span className="text-secondary font-medium ml-1">✓ Membre</span>
+          <span className="text-secondary font-medium ml-1 inline-flex items-center gap-1">
+            <Check size={14} />
+            Member
+          </span>
         )}
       </p>
     </div>

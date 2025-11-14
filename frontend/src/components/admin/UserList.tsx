@@ -4,6 +4,7 @@ import { Avatar } from "../items/Avatar";
 import useAxios from "../../axios/useAxios";
 import { useToast } from "../ToastProvider";
 import ConfirmModal from "../modals/ConfirmModal";
+import { Trash2, Edit, Save } from "lucide-react";
 
 export default function UserList() {
   const { users, fetchUsers, updateUser } = useAdminApi();
@@ -12,9 +13,6 @@ export default function UserList() {
   const [editMode, setEditMode] = useState(false);
   const [editedUsers, setEditedUsers] = useState<Record<number, boolean>>({});
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
-  const [showInviteModal, setShowInviteModal] = useState<boolean>(false);
-  const [inviteEmail, setInviteEmail] = useState<string>("");
-  const [inviteLink, setInviteLink] = useState<string>("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [adminFilter, setAdminFilter] = useState<"all" | "admin" | "non-admin">(
@@ -63,18 +61,6 @@ export default function UserList() {
     }
   };
 
-  const sendInvite = async (email: string) => {
-    try {
-      const res = await axiosInstance.post("/admin/invite/", { email: email });
-      const link = typeof res.data?.link === "string" ? res.data.link : "";
-      setInviteLink(link);
-      setInviteEmail("");
-    } catch {
-      notify("❌ Failed to generate invite", "error");
-      setInviteLink("");
-    }
-  };
-
   const toggleEditMode = async () => {
     if (editMode) {
       const changes = Object.entries(editedUsers);
@@ -90,17 +76,6 @@ export default function UserList() {
     }
 
     setEditMode((prev) => !prev);
-  };
-
-  const copyAndClose = async () => {
-    await navigator.clipboard.writeText(inviteLink);
-    notify("✅ Invite link copied", "success");
-  };
-
-  const cancelInvite = () => {
-    setShowInviteModal(false);
-    setInviteEmail("");
-    setInviteLink("");
   };
 
   return (
@@ -130,12 +105,13 @@ export default function UserList() {
           {selectedUserIds.length > 0 && (
             <div className="" onClick={() => setShowDeleteConfirm(true)}>
               <button className="btn btn-error">
-                🗑️ {selectedUserIds.length} Selected
+                <Trash2 size={18} />
+                {selectedUserIds.length} Selected
               </button>
             </div>
           )}
           <button className="btn btn-primary" onClick={toggleEditMode}>
-            {editMode ? "💾" : "✏️"}
+            {editMode ? <Save size={18} /> : <Edit size={18} />}
           </button>
         </div>
       </div>
@@ -218,62 +194,8 @@ export default function UserList() {
                 </tr>
               );
             })}
-            <tr>
-              <td>
-                <div className="flex items-center gap-4">
-                  <button
-                    className="btn  rounded-full w-[44px] h-[44px] flex items-center justify-center text-4xl font-light"
-                    onClick={() => setShowInviteModal(true)}
-                  >
-                    +
-                  </button>
-                  <div className="font-semibold">Invite new members</div>
-                </div>
-              </td>
-            </tr>
           </tbody>
         </table>
-        {showInviteModal && (
-          <dialog open className="modal backdrop-blur-xs">
-            <div className="modal-box">
-              <h3 className="font-bold text-lg">Invite New User</h3>
-              <input
-                type="email"
-                placeholder="Enter email"
-                className="input input-bordered w-full my-4"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-              />
-              <div className="modal-action">
-                <button className="btn" onClick={cancelInvite}>
-                  Cancel
-                </button>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => sendInvite(inviteEmail)}
-                >
-                  Generate Link
-                </button>
-              </div>
-              {inviteLink && (
-                <div className="mt-2">
-                  <p className="text-sm">Invite link:</p>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      className="input input-bordered cursor-copy w-full truncate"
-                      value={inviteLink}
-                      disabled
-                      readOnly
-                    />
-                    <button className="btn btn-accent" onClick={copyAndClose}>
-                      📋
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </dialog>
-        )}
         {showDeleteConfirm && (
                 <ConfirmModal
                   message={

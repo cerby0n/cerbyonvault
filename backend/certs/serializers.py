@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import get_user_model
-from .models import Certificate, InviteToken, PrivateKey, CustomUser,Team, UploadedFile, UserProfile, Website, SSOConfiguration
+from .models import Certificate, InviteToken, PrivateKey, CustomUser,Team, UploadedFile, UserProfile, Website, SSOConfiguration, Secret
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer,TokenRefreshSerializer
 from django.contrib.auth import authenticate
 
@@ -274,4 +274,125 @@ class SSOConfigurationSerializer(serializers.ModelSerializer):
             validated_data['encrypted_client_secret'] = encrypted_secret
 
         return super().update(instance, validated_data)
+
+
+class SecretMiniSerializer(serializers.ModelSerializer):
+    """
+    Minimal serializer for secrets used in dashboard lists.
+    """
+    is_expired = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Secret
+        fields = ['id', 'name', 'application', 'expiry_date', 'is_expired']
+
+
+class SecretSerializer(serializers.ModelSerializer):
+    """
+    Serializer for listing and retrieving secrets.
+    Does not expose the decrypted secret value.
+    """
+    access_teams = TeamMiniSerializer(many=True, read_only=True)
+    created_by_email = serializers.EmailField(source='created_by.email', read_only=True)
+    is_expired = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Secret
+        fields = ['id', 'name', 'application', 'expiry_date', 'access_teams', 'comment', 'created_at', 'updated_at', 'created_by_email', 'is_expired']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class SecretDetailSerializer(serializers.ModelSerializer):
+    """
+    Serializer for retrieving secret details including the decrypted value.
+    Only used when explicitly requesting the secret value.
+    """
+    access_teams = TeamMiniSerializer(many=True, read_only=True)
+    created_by_email = serializers.EmailField(source='created_by.email', read_only=True)
+    secret_value = serializers.SerializerMethodField()
+    is_expired = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Secret
+        fields = ['id', 'name', 'secret_value', 'application', 'expiry_date', 'access_teams', 'comment', 'created_at', 'updated_at', 'created_by_email', 'is_expired']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_secret_value(self, obj):
+        """Decrypt and return the secret value"""
+        from django.conf import settings
+        try:
+            decrypted_bytes = settings.FERNET.decrypt(obj.encrypted_secret_value.encode())
+            return decrypted_bytes.decode()
+        except Exception:
+            return None
+
+
+class SecretCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating new secrets.
+    Accepts plain-text secret_value and encrypts it before saving.
+    """
+    secret_value = serializers.CharField(write_only=True, required=True)
+    access_teams = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
+
+    class Meta:
+        model = Secret
+        fields = ['name', 'secret_value', 'application', 'expiry_date', 'access_teams', 'comment']
+
+    def create(self, validated_data):
+        from django.conf import settings
+
+        # Extract and encrypt the secret value
+        secret_value = validated_data.pop('secret_value')
+        encrypted_secret = settings.FERNET.encrypt(secret_value.encode()).decode()
+        validated_data['encrypted_secret_value'] = encrypted_secret
+
+        # Extract team IDs
+        team_ids = validated_data.pop('access_teams', [])
+
+        # Set created_by from request context
+        validated_data['created_by'] = self.context['request'].user
+
+        # Create the secret
+        secret = Secret.objects.create(**validated_data)
+
+        # Add teams
+        if team_ids:
+            secret.access_teams.set(Team.objects.filter(id__in=team_ids))
+
+        return secret
+
+
+class SecretUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for updating secrets.
+    Can optionally update the secret value (will be re-encrypted).
+    """
+    secret_value = serializers.CharField(write_only=True, required=False)
+    access_teams = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
+
+    class Meta:
+        model = Secret
+        fields = ['name', 'secret_value', 'application', 'expiry_date', 'access_teams', 'comment']
+
+    def update(self, instance, validated_data):
+        from django.conf import settings
+
+        # Handle secret value update if provided
+        secret_value = validated_data.pop('secret_value', None)
+        if secret_value:
+            encrypted_secret = settings.FERNET.encrypt(secret_value.encode()).decode()
+            instance.encrypted_secret_value = encrypted_secret
+
+        # Handle teams update
+        team_ids = validated_data.pop('access_teams', None)
+        if team_ids is not None:
+            instance.access_teams.set(Team.objects.filter(id__in=team_ids))
+
+        # Update other fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
 

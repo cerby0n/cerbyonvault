@@ -59,3 +59,16 @@ export interface Website{
   domain: string;
   certificate: number;
 }
+
+export interface Secret {
+  id: number;
+  name: string;
+  application: string;
+  expiry_date: string | null;
+  access_teams: Team[];
+  comment: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by_email: string;
+  is_expired: boolean;
+}

@@ -13,6 +13,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Websites from "./pages/Websites";
 import { AdminRoute } from "./utils/AdminRoute";
 import SSOCallback from "./pages/SSOCallback";
+import Secrets from "./pages/Secrets";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +56,14 @@ function App() {
                 element={
                   <PrivateRoute>
                     <Websites />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/secrets"
+                element={
+                  <PrivateRoute>
+                    <Secrets />
                   </PrivateRoute>
                 }
               />

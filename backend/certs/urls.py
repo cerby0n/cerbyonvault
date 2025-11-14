@@ -29,12 +29,18 @@ from certs.views import (
     RegisterFromInviteView,
     GenerateInviteView,
     TeamDetailView,
+)
+from certs.views.dashboard_views import (
     certificates_overview,
     certificates_expiring_soon,
     certificates_list,
     certificates_top_expiry,
+    secrets_overview,
+    secrets_expiring_soon,
+    secrets_list,
 )
 from certs.views.sso_settings_views import SSOConfigurationView, SSOTestConnectionView, SSOStatusView
+from certs.views.secrets_views import SecretListCreateView, SecretDetailView, SecretRevealView
 from rest_framework_simplejwt.views import TokenRefreshView
 
 
@@ -95,10 +101,18 @@ urlpatterns = [
     #WEBSITE VIEW
     path('websites/', WebsiteListView.as_view()),
 
+    #SECRETS MANAGEMENT
+    path('secrets/', SecretListCreateView.as_view(), name='secret-list-create'),
+    path('secrets/<int:pk>/', SecretDetailView.as_view(), name='secret-detail'),
+    path('secrets/<int:pk>/reveal/', SecretRevealView.as_view(), name='secret-reveal'),
+
     #DASHBOARD VIEW
     path('dashboard/certificates-overview/', certificates_overview, name='certificates-overview'),
     path('dashboard/certificates-expiring-soon/', certificates_expiring_soon, name='certificates-expiring-soon'),
     path('dashboard/certificates-list/', certificates_list, name='certificates-list'),
     path('dashboard/certificates-top-expiry/', certificates_top_expiry, name='certificates-top-expiry'),
+    path('dashboard/secrets-overview/', secrets_overview, name='secrets-overview'),
+    path('dashboard/secrets-expiring-soon/', secrets_expiring_soon, name='secrets-expiring-soon'),
+    path('dashboard/secrets-list/', secrets_list, name='secrets-list'),
 
 ]

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useExportActions } from "../hooks/useExportActions";
 import CustomMenuButton from "./items/CustomMenuButton";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, FileText, Copy, Download } from "lucide-react";
 
 type CertificateContextMenuProps = {
   x: number;
@@ -48,15 +48,20 @@ export default function CertificateContextMenu({
 
   const SubMenu = ({
     title,
+    icon,
     children,
   }: {
     title: string;
+    icon: React.ReactNode;
     children: React.ReactNode;
   }) => (
     <div className="relative group">
       <button className="w-full text-left p-1 cursor-pointer hover:bg-base-100">
         <div className="flex items-center justify-between">
-          {title}
+          <div className="flex items-center gap-2">
+            {icon}
+            {title}
+          </div>
           <ChevronRight size={15} />
         </div>
       </button>
@@ -83,8 +88,11 @@ export default function CertificateContextMenu({
       className="absolute bg-base-100 shadow-md outline outline-accent/20 p-3 rounded z-50 w-64"
       style={menuStyle}
     >
-      <h3 className="font-bold mb-2">🧾 Export Options</h3>
-      <SubMenu title="📋 Copy to Clipboard">
+      <h3 className="font-bold mb-2 flex items-center gap-2">
+        <FileText size={18} />
+        Export Options
+      </h3>
+      <SubMenu title="Copy to Clipboard" icon={<Copy size={16} />}>
         <CustomMenuButton
           onClick={() => handleClipboard("cert")}
           label="Cert"
@@ -110,7 +118,8 @@ export default function CertificateContextMenu({
         onClick={() => {
           onExportClick(certId, certName);
         }}
-        label="📥 Download File"
+        label="Download File"
+        icon={<Download size={16} />}
       />
     </div>
   );

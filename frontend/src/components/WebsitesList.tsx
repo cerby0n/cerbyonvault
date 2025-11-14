@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import useAxios from "../axios/useAxios";
 import { useToast } from "../components/ToastProvider";
 import { FiExternalLink } from "react-icons/fi";
+import { Globe } from "lucide-react";
 
 type Certificate = {
   id: number;
@@ -57,7 +58,10 @@ export default function WebsitesList() {
     <div className="w-full flex">
       <div className="flex flex-col w-full space-y-2">
         <div className="p-6 bg-base-100 rounded top-0 items-center">
-          <h1 className="text-4xl font-bold text-secondary-content">🌐Websites</h1>
+          <h1 className="text-4xl font-bold text-secondary-content flex items-center gap-3">
+            <Globe size={36} />
+            Websites
+          </h1>
         </div>
         <div className="bg-base-100 rounded h-full p-4">
           <div className="flex gap-4 mb-4">
@@ -65,7 +69,7 @@ export default function WebsitesList() {
             <input
               type="text"
               className="input input-bordered"
-              placeholder="🔍 Search by domain"
+              placeholder="Search by domain"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
